@@ -19,6 +19,13 @@ func main() {
 	//	"t-20-00": "20:00", "t-20-30": "20:30", "t-21-00": "21:00", "t-21-30": "21:30", "t-22-00": "22:00", "t-22-30": "22:30",
 	//	"t-23-00": "23:00", "t-23-30": "23:30", "t-24-00": "24:00", "t-24-30": "24:30", "t-25-00": "25:00", "t-25-30": "25:30",
 	//}
+
+	accessToken := "set your token"
+
+	l := newLine(accessToken)
+
+	msg := "\n"
+
 	lesson_time_array := []string{
 		"02:00", "02:30", "03:00", "03:30", "04:00", "04:30",
 		"05:00", "05:30", "06:00", "06:30", "07:00", "07:30",
@@ -41,20 +48,34 @@ func main() {
 
 	c.WithTransport(t)
 
+	// On every a element which has div and class=area-detail attribute call callback
+	c.OnHTML("div.area-detail", func(e *colly.HTMLElement) {
+		// get teacher's name
+		t_name := ""
+		t_name = e.DOM.Find("h1").Text()
+		fmt.Println(t_name)
+		msg += fmt.Sprintf("Teacher: %s\n\n", t_name)
+	})
+
 	// On every a element which has ul and class=oneday attribute call callback
 	c.OnHTML("ul.oneday", func(e *colly.HTMLElement) {
 
+		// get schedule
+		res_date := ""
 		e.ForEach("li", func(a int, elem *colly.HTMLElement) {
 			if elem.Text != "" {
 				if elem.DOM.HasClass("date") {
 					fmt.Println("date:" + elem.Text)
+					res_date = elem.Text
+					msg += fmt.Sprintf("%s\n", res_date)
+
 				} else if elem.Text == "予約可" {
 					fmt.Println(a - 1)
 					fmt.Println(lesson_time_array[a-1])
+					msg += fmt.Sprintf("  %s\n", lesson_time_array[a-1])
 				}
 			}
 		})
-		fmt.Println("\n")
 	})
 
 	// Before making a request print "Visiting ..."
@@ -63,4 +84,5 @@ func main() {
 	})
 
 	c.Visit("file://" + "/tmp/test.html")
+	l.notify(msg)
 }
