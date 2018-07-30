@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -27,12 +26,12 @@ func newLine(token string) *line {
 func (lobj *line) notify(msg string) {
 
 	if lobj.accessToken == "" {
-		fmt.Print("accessToken required, but not set.")
+		log.Printf("accessToken required, but not set.")
 		return
 	}
 
 	if msg == "" {
-		fmt.Print("msg required, but not set.")
+		log.Printf("msg required, but not set.")
 		return
 	}
 
