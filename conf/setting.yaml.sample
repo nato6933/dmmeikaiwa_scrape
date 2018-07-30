@@ -1,0 +1,11 @@
+line_access_token: # LINE access token
+    set_your_access_token
+crawl_duration: # Access minutes
+    10
+teachers:
+-
+    id: #Kuro
+        25231
+-
+    id: #Goggy
+        15263
