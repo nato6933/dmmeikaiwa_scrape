@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"flag"
 	"fmt"
 	"log"
@@ -16,6 +17,7 @@ const (
 	conf_path      = "./conf/setting.yaml"
 	tmpl_path      = "./conf/notify.tmpl"
 	log_path       = "./log/parse.log"
+	prev_path      = "./log/previous_schedule.gob"
 	fileOptDefault = "notset"
 	StrCanReserve  = "予約可"
 )
@@ -36,6 +38,48 @@ func init_log(log_path string) error {
 	return nil
 }
 
+func read_prev_schedule(mm_prev *MultipleMessage) error {
+	var err error = nil
+
+	_, err = os.Stat(prev_path)
+	if os.IsNotExist(err) {
+		log.Printf("Not Exist %s.", prev_path)
+		return err
+	}
+
+	f, err := os.Open(prev_path)
+	if err != nil {
+		log.Printf("Failed to open :%s", prev_path)
+		return err
+	}
+	defer f.Close()
+
+	dec := gob.NewDecoder(f)
+	if err := dec.Decode(mm_prev); err != nil {
+		log.Fatal("decode error:", err)
+		return err
+	}
+
+	return err
+}
+
+func write_prev_schedule(mm *MultipleMessage) error {
+	PrevFile, err := os.OpenFile(prev_path, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer PrevFile.Close()
+
+	enc := gob.NewEncoder(PrevFile)
+	if err := enc.Encode(mm); err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	return nil
+
+}
+
 func main() {
 
 	flag.Parse()
@@ -49,11 +93,18 @@ func main() {
 	// Read config.
 	conf := newConf()
 	conf.setConf(conf_path)
-	//conf.PrintConf()
 
+	// Read previous data
+	log.Printf("Read Previous data")
+	mm_prev := NewMultipleMessage()
+	read_prev_schedule(mm_prev)
+
+	// Object that to notify to line
 	l := newLine(conf.LineAccessToken)
 
-	msg := "\n"
+	// Message list
+	msg_list := []string{}
+
 	tmp_msg := Message{
 		TeacherName: "",
 		URL:         "",
@@ -119,7 +170,10 @@ func main() {
 		log.Printf("Visiting:%s", r.URL.String())
 	})
 
+	mm := NewMultipleMessage()
+
 	if *fileOpt == fileOptDefault {
+
 		for _, v := range conf.Teachers {
 			tmp_msg = Message{
 				TeacherName: "",
@@ -131,16 +185,37 @@ func main() {
 
 			c.Visit(tmp_msg.URL)
 			log.Printf("Embed:\n%s", tmp_msg.Embed(tmpl_path))
-			msg += tmp_msg.Embed(tmpl_path)
+			msg_list = append(msg_list, fmt.Sprintf("\n%s", tmp_msg.Embed(tmpl_path)))
+			mm.Stock(tmp_msg)
 
-			time.Sleep(1 * time.Second) // duration to automated parse.
+			time.Sleep(time.Duration(conf.CrawlDuration) * time.Second) // necessary duration that is to automated parse.
 		}
-	} else {
+
+	} else { // for debug
 		c.Visit("file://" + *fileOpt)
-		msg += tmp_msg.Embed(tmpl_path)
+		jstr, _ := tmp_msg.ToJsonString()
+		log.Printf(jstr)
+
+		mm.Stock(tmp_msg)
 	}
 
-	if *fileOpt == fileOptDefault {
-		l.notify(msg)
+	// get diff
+	log.Printf("GetDiff")
+	is_diff, _ := GetDiff(mm, mm_prev)
+
+	if *fileOpt == fileOptDefault && is_diff {
+		tmp_str := ""
+		for num, msg := range msg_list {
+			tmp_str += msg
+			if (num+1)%4 == 0 {
+				l.notify(tmp_str)
+				time.Sleep(1 * time.Second) // necessary duration that is to automated parse.
+				tmp_str = ""
+			}
+		}
+		l.notify(tmp_str)
 	}
+
+	log.Printf("Write data as previous data")
+	write_prev_schedule(mm)
 }
