@@ -2,6 +2,8 @@ line_access_token: # LINE access token
     set_your_access_token
 crawl_duration: # Access minutes
     10
+log_dir_path: # log dir path
+    /path/to/logdir
 teachers:
 -
     id: #Kuro
