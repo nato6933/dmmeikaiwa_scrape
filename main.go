@@ -16,8 +16,8 @@ const (
 	dmm_url        = "https://eikaiwa.dmm.com//teacher/index/%s/"
 	conf_path      = "./conf/setting.yaml"
 	tmpl_path      = "./conf/notify.tmpl"
-	log_path       = "./log/parse.log"
-	prev_path      = "./log/previous_schedule.gob"
+	log_name       = "parse.log"
+	prev_name      = "previous_schedule.gob"
 	fileOptDefault = "notset"
 	StrCanReserve  = "予約可"
 )
@@ -38,7 +38,7 @@ func init_log(log_path string) error {
 	return nil
 }
 
-func read_prev_schedule(mm_prev *MultipleMessage) error {
+func read_prev_schedule(prev_path string, mm_prev *MultipleMessage) error {
 	var err error = nil
 
 	_, err = os.Stat(prev_path)
@@ -63,7 +63,7 @@ func read_prev_schedule(mm_prev *MultipleMessage) error {
 	return err
 }
 
-func write_prev_schedule(mm *MultipleMessage) error {
+func write_prev_schedule(prev_path string, mm *MultipleMessage) error {
 	PrevFile, err := os.OpenFile(prev_path, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err
@@ -84,20 +84,23 @@ func main() {
 
 	flag.Parse()
 
-	err := init_log(log_path)
+	// Read config.
+	conf := newConf()
+	conf.setConf(conf_path)
+
+	// set log
+	err := init_log(fmt.Sprintf("%s/%s", conf.LogDirPath, log_name))
 	if err != nil {
 		fmt.Println(err)
 		panic(1)
 	}
 
-	// Read config.
-	conf := newConf()
-	conf.setConf(conf_path)
+	prev_path := fmt.Sprintf("%s/%s", conf.LogDirPath, prev_name)
 
 	// Read previous data
 	log.Printf("Read Previous data")
 	mm_prev := NewMultipleMessage()
-	read_prev_schedule(mm_prev)
+	read_prev_schedule(prev_path, mm_prev)
 
 	// Object that to notify to line
 	l := newLine(conf.LineAccessToken)
@@ -228,5 +231,5 @@ func main() {
 	}
 
 	log.Printf("Write data as previous data")
-	write_prev_schedule(mm)
+	write_prev_schedule(prev_path, mm)
 }
