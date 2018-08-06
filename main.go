@@ -111,8 +111,6 @@ func main() {
 		Schedules:   map[string][]string{},
 	}
 
-	tmp_teacher := ""
-
 	lesson_time_array := []string{
 		"02:00", "02:30", "03:00", "03:30", "04:00", "04:30",
 		"05:00", "05:30", "06:00", "06:30", "07:00", "07:30",
@@ -124,6 +122,8 @@ func main() {
 		"23:00", "23:30", "24:00", "24:30", "25:00", "25:30",
 	}
 
+	okReserve := false
+
 	t := &http.Transport{}
 	t.RegisterProtocol("file", http.NewFileTransport(http.Dir("/")))
 
@@ -134,6 +134,8 @@ func main() {
 	if *fileOpt != fileOptDefault {
 		c.WithTransport(t)
 	}
+
+	tmp_teacher := ""
 
 	// On every a element which has div and class=area-detail attribute call callback
 	c.OnHTML("div.area-detail", func(e *colly.HTMLElement) {
@@ -152,11 +154,12 @@ func main() {
 
 			if elem.Text != "" {
 				if elem.DOM.HasClass("date") {
-					log.Printf("date:%s", elem.Text)
+					//log.Printf("date:%s", elem.Text)
 					tmp_date = elem.Text
 					tmp_msg.Schedules[elem.Text] = []string{}
 				} else if elem.Text == StrCanReserve {
-					log.Printf("Start time:%s", lesson_time_array[a-1])
+					okReserve = true
+					//log.Printf("Start time:%s", lesson_time_array[a-1])
 					if tmp_date != "" {
 						tmp_msg.Schedules[tmp_date] = append(tmp_msg.Schedules[tmp_date], lesson_time_array[a-1])
 					}
@@ -181,12 +184,18 @@ func main() {
 				Schedules:   map[string][]string{},
 			}
 
+			okReserve = false
+
 			tmp_msg.URL = fmt.Sprintf(dmm_url, v.Id)
 
+			// starting parse
 			c.Visit(tmp_msg.URL)
-			log.Printf("Embed:\n%s", tmp_msg.Embed(tmpl_path))
-			msg_list = append(msg_list, fmt.Sprintf("\n%s", tmp_msg.Embed(tmpl_path)))
-			mm.Stock(tmp_msg)
+
+			if okReserve {
+				//log.Printf("Embed:\n%s", tmp_msg.Embed(tmpl_path))
+				msg_list = append(msg_list, fmt.Sprintf("\n%s", tmp_msg.Embed(tmpl_path)))
+				mm.Stock(tmp_msg)
+			}
 
 			time.Sleep(time.Duration(conf.CrawlDuration) * time.Second) // necessary duration that is to automated parse.
 		}
@@ -209,10 +218,12 @@ func main() {
 			tmp_str += msg
 			if (num+1)%4 == 0 {
 				l.notify(tmp_str)
-				time.Sleep(1 * time.Second) // necessary duration that is to automated parse.
+				// necessary duration to notify to line
+				time.Sleep(1 * time.Second)
 				tmp_str = ""
 			}
 		}
+		// notify remain messages
 		l.notify(tmp_str)
 	}
 
