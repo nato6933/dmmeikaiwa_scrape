@@ -153,19 +153,23 @@ func main() {
 	c.OnHTML("ul.oneday", func(e *colly.HTMLElement) {
 
 		tmp_date := ""
+		IsIncorporate := false
+
 		e.ForEach("li", func(a int, elem *colly.HTMLElement) {
+
+			if a != 0 && lesson_time_array[a-1] == conf.StartTime {
+				IsIncorporate = true
+			} else if a != 0 && lesson_time_array[a-1] == conf.EndTime {
+				IsIncorporate = false
+			}
 
 			if elem.Text != "" {
 				if elem.DOM.HasClass("date") {
-					//log.Printf("date:%s", elem.Text)
 					tmp_date = elem.Text
 					tmp_msg.Schedules[elem.Text] = []string{}
-				} else if elem.Text == StrCanReserve {
+				} else if elem.Text == StrCanReserve && IsIncorporate && tmp_date != "" { // reserve
 					okReserve = true
-					//log.Printf("Start time:%s", lesson_time_array[a-1])
-					if tmp_date != "" {
-						tmp_msg.Schedules[tmp_date] = append(tmp_msg.Schedules[tmp_date], lesson_time_array[a-1])
-					}
+					tmp_msg.Schedules[tmp_date] = append(tmp_msg.Schedules[tmp_date], lesson_time_array[a-1])
 				}
 			}
 		})
@@ -214,6 +218,7 @@ func main() {
 	// get diff
 	log.Printf("GetDiff")
 	is_diff, _ := GetDiff(mm, mm_prev)
+	log.Println(is_diff)
 
 	if *fileOpt == fileOptDefault && is_diff {
 		tmp_str := ""
