@@ -12,6 +12,7 @@ Note:
 ## Install & Quick start
 
 1. Access below URL to get line notify token
+
 https://notify-bot.line.me/my/
 
 2. Go get and build
@@ -32,7 +33,9 @@ vim conf/setting.yaml
 Write your line access token, log directory path, start_time, end_time, and teachers' IDs you want to book.
 
 Note:
+
     You will get ID from teachers personal page's URL.
+
     e.g. ID is 25711 in https://eikaiwa.dmm.com/teacher/index/25711/.
 
 4. Try to use
