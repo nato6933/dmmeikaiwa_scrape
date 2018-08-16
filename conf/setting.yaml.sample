@@ -1,7 +1,7 @@
 line_access_token: # LINE access token
     set_your_access_token
-crawl_duration: # Duration of between accessing DMM Eikaiwa and next one.
-    10
+crawl_duration: # Duration of between accessing DMM Eikaiwa web page and next one.( Recommendation: 1sec)
+    1
 log_dir_path: # log dir path
     /path/to/logdir
 start_time: # to filter lesson starting time ( 02:00 - 25:30 are available)
